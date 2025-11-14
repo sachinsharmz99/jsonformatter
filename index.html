@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/mode-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/theme-tomorrow_night.min.js"></script>
+    <style>
+        .ace-editor {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        .tree-node {
+            transition: all 0.2s ease;
+        }
+        .tree-node.collapsed > .tree-children {
+            display: none;
+        }
+        .tree-expand-icon {
+            transition: transform 0.2s ease;
+        }
+        .tree-node.collapsed > .tree-header > .tree-expand-icon {
+            transform: rotate(-90deg);
+        }
+		.search-highlight {
+			background: rgb(193 112 112 / 58%);
+			border-radius: 3px;
+			padding: 0 1px;
+		}
+
+		.selected-search-match {
+			box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+		}
+    </style>
+</head>
+<body class="bg-slate-950 text-white h-screen overflow-hidden">
+    <!-- Main Container -->
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header id="app-header" class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- Logo -->
+                <div class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-lg font-semibold text-white">JSON Formatter Pro</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- Source Code Button -->
+                <button id="source-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="View Source Code">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                </button>
+                <!-- Theme Toggle Button -->
+                <button id="theme-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Toggle Theme">
+                    <svg id="theme-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="app-main" class="flex-grow flex">
+            <!-- Hidden File Input -->
+            <input type="file" id="file-input" accept=".json" class="hidden">
+            
+            <!-- Input Panel -->
+            <section id="input-panel" class="flex-1 flex flex-col border-2 border-slate-700 m-2 rounded-lg overflow-hidden">
+                <!-- Input Header -->
+                <div class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+                    <h2 class="text-base font-medium text-white">Input JSON</h2>
+                    <div id="input-toolbar" class="flex items-center space-x-2">
+                        <!-- Minify Button -->
+                        <button id="minify-btn" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded transition-colors flex items-center space-x-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                            <span class="hidden sm:inline">Minify</span>
+                        </button>
+                        <!-- Copy Button -->
+                        <button id="copy-input-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Copy Input">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <!-- Open File Button -->
+                        <button id="open-file-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Open File">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <!-- Editor Container -->
+                <div id="editor-container" class="flex-1 ace-editor"></div>
+            </section>
+
+            <!-- Format Button Container -->
+            <div id="format-button-container" class="flex items-center justify-center px-4">
+                <button id="format-btn" class="w-12 h-12 bg-sky-500 hover:bg-sky-600 rounded-full flex items-center justify-center transition-colors" title="Format JSON">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Output Panel -->
+            <section id="output-panel" class="flex-1 flex flex-col border-2 border-slate-700 m-2 rounded-lg overflow-hidden">
+                <!-- Output Header -->
+                <div class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+                    <h2 class="text-base font-medium text-white">Output</h2>
+                    <div id="output-toolbar" class="flex items-center space-x-2">
+                        <!-- Search Input -->
+                        <input id="search-input" type="text" placeholder="Search..." class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-500 hidden">
+                        <!-- Expand/Collapse All Button -->
+                        <button id="expand-collapse-all-btn" class="p-2 hover:bg-slate-800 rounded transition-colors hidden" title="Expand/Collapse All">
+                            <svg id="expand-collapse-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                        </button>
+                        <!-- Indentation Selector -->
+                        <div class="flex items-center space-x-1">
+                            <button id="indent-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Indentation">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                                </svg>
+                            </button>
+                            <span class="text-sm text-slate-300">2 Spaces</span>
+                        </div>
+                        <!-- View Mode Toggle -->
+                        <div class="flex bg-slate-800 rounded">
+                            <button id="text-view-btn" class="px-3 py-1 text-sm bg-sky-500 text-white rounded-l transition-colors" title="Text View">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                                </svg>
+                            </button>
+                            <button id="tree-view-btn" class="px-3 py-1 text-sm rounded-r transition-colors" title="Tree View">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <!-- Copy Output Button -->
+                        <button id="copy-output-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Copy Output">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <!-- Download Button -->
+                        <button id="download-btn" class="p-2 hover:bg-slate-800 rounded transition-colors" title="Download">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <!-- Output Container -->
+                <div class="flex-1 relative">
+                    <!-- Output Textarea -->
+                    <textarea id="output-textarea" class="w-full h-full bg-slate-900 border-none outline-none p-4 font-mono text-sm text-white resize-none" readonly placeholder="Formatted JSON will appear here..."></textarea>
+                    <!-- Tree View Container -->
+                    <div id="tree-view-container" class="absolute inset-0 overflow-auto p-4 font-mono text-sm"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer id="app-footer" class="bg-slate-900 border-t border-slate-800 px-4 py-2">
+            <!-- Error Display -->
+            <div id="error-display" class="hidden mb-2 p-2 bg-red-900 border border-red-700 rounded text-red-200 text-sm"></div>
+            <!-- Status Bar -->
+            <div id="status-bar" class="flex items-center justify-between text-sm text-slate-400">
+                <div class="flex items-center space-x-4">
+                    <span id="validity-status">Valid JSON</span>
+                    <span id="size-info">0 characters</span>
+                </div>
+                <div id="cursor-info">Line 1, Column 1</div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+		let state = {
+			input: '// Paste your JSON here...\n{\n  "example": "This is some JSON",\n  "data": [\n    {\n      "id": 1,\n      "value": "one"\n    },\n    {\n      "id": 2,\n      "value": "two"\n    }\n  ],\n  "isValid": true\n}',
+			output: '',
+			error: null,
+			viewMode: 'text',
+			indentation: 2,
+			parsedJson: null,
+			editor: null,
+			searchTerm: '',
+			isDarkTheme: true,
+			allNodesExpanded: false,
+
+			// new fields for search
+			searchMatches: [],        // array of { node, highlightEl }
+			currentMatchIndex: -1,    // index within searchMatches
+		};
+
+		// DOM Elements
+		let elements = {};
+
+		// Initialize Application
+		document.addEventListener('DOMContentLoaded', init);
+
+		function init() {
+			// Get DOM element references
+			elements = {
+				editorContainer: document.getElementById('editor-container'),
+				outputTextarea: document.getElementById('output-textarea'),
+				treeViewContainer: document.getElementById('tree-view-container'),
+				errorDisplay: document.getElementById('error-display'),
+				validityStatus: document.getElementById('validity-status'),
+				sizeInfo: document.getElementById('size-info'),
+				cursorInfo: document.getElementById('cursor-info'),
+				fileInput: document.getElementById('file-input'),
+				formatBtn: document.getElementById('format-btn'),
+				minifyBtn: document.getElementById('minify-btn'),
+				copyInputBtn: document.getElementById('copy-input-btn'),
+				copyOutputBtn: document.getElementById('copy-output-btn'),
+				openFileBtn: document.getElementById('open-file-btn'),
+				downloadBtn: document.getElementById('download-btn'),
+				textViewBtn: document.getElementById('text-view-btn'),
+				treeViewBtn: document.getElementById('tree-view-btn'),
+				indentBtn: document.getElementById('indent-btn'),
+				sourceBtn: document.getElementById('source-btn'),
+				themeBtn: document.getElementById('theme-btn'),
+				themeIcon: document.getElementById('theme-icon'),
+				searchInput: document.getElementById('search-input'),
+				expandCollapseAllBtn: document.getElementById('expand-collapse-all-btn'),
+				expandCollapseIcon: document.getElementById('expand-collapse-icon')
+			};
+
+			// Initialize Ace Editor
+			initAceEditor();
+
+			// Attach event listeners
+			attachEventListeners();
+
+			// Initial render
+			render();
+
+			// Set initial theme icon
+			updateThemeIcon('dark');
+		}
+
+		function initAceEditor() {
+			state.editor = ace.edit('editor-container');
+			state.editor.setTheme(state.isDarkTheme ? 'ace/theme/tomorrow_night' : 'ace/theme/github');
+			state.editor.session.setMode('ace/mode/json');
+			state.editor.setValue(state.input);
+			state.editor.setOptions({
+				fontSize: '13px',
+				showPrintMargin: false,
+				wrap: true,
+				tabSize: 2,
+				useSoftTabs: true
+			});
+
+			// Listen for changes
+			state.editor.on('change', () => {
+				state.input = state.editor.getValue();
+				updateStatusBar();
+			});
+
+			state.editor.on('cursorActivity', updateStatusBar);
+		}
+
+		function attachEventListeners() {
+			// Format button
+			elements.formatBtn.addEventListener('click', () => processJson('format'));
+
+			// Minify button
+			elements.minifyBtn.addEventListener('click', () => processJson('minify'));
+
+			// Copy buttons
+			elements.copyInputBtn.addEventListener('click', () => copyToClipboard(state.input));
+			elements.copyOutputBtn.addEventListener('click', () => copyToClipboard(state.output));
+
+			// File operations
+			elements.openFileBtn.addEventListener('click', () => elements.fileInput.click());
+			elements.fileInput.addEventListener('change', handleFileOpen);
+			elements.downloadBtn.addEventListener('click', downloadFile);
+
+			// View mode toggle
+			elements.textViewBtn.addEventListener('click', () => setViewMode('text'));
+			elements.treeViewBtn.addEventListener('click', () => setViewMode('tree'));
+
+			// Indentation toggle
+			elements.indentBtn.addEventListener('click', toggleIndentation);
+
+			// Theme toggle
+			elements.themeBtn.addEventListener('click', toggleTheme);
+
+			// Search functionality
+			// original: elements.searchInput.addEventListener('input', handleSearch);
+			const debouncedHandleSearch = debounce(handleSearchImpl, 220);
+			elements.searchInput.addEventListener('input', debouncedHandleSearch);
+
+			// When user presses Enter in search box, go to next match
+			elements.searchInput.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					goToNextMatch();
+				}
+			});
+
+			// Expand/Collapse All functionality
+			elements.expandCollapseAllBtn.addEventListener('click', toggleAllNodes);
+
+			// Source button
+			elements.sourceBtn.addEventListener('click', () => {
+				alert('This is a single-page application built with HTML, CSS, and Vanilla JavaScript!');
+			});
+		}
+	
+		function clearPreviousSelection() {
+			if (!elements.treeViewContainer) return;
+
+			// 1) Clear selected word strong highlight (red) and restore blue if it was a search-highlight
+			const prevWords = elements.treeViewContainer.querySelectorAll('.selected-search-match');
+			prevWords.forEach(el => {
+				el.classList.remove('selected-search-match');
+				el.style.outline = '';
+				el.style.borderRadius = '';
+				el.style.padding = '';
+
+				// If this element is also a search-highlight, restore the blue bg used for other matches
+				if (el.classList.contains('search-highlight')) {
+					el.style.backgroundColor = 'rgb(61 102 212 / 71%)';
+				} else {
+					el.style.backgroundColor = '';
+				}
+			});
+
+			// 2) Clear any previously selected line highlight
+			const prevLines = elements.treeViewContainer.querySelectorAll('.selected-line');
+			prevLines.forEach(node => {
+				node.classList.remove('selected-line');
+				node.style.backgroundColor = '';
+			});
+
+			// 3) Remove light highlights that were applied to parent nodes for previous selection
+			//    (we mark parents with data-parent-highlighted so we only clear those)
+			const highlightedParents = elements.treeViewContainer.querySelectorAll('[data-parent-highlighted="true"]');
+			highlightedParents.forEach(p => {
+				p.style.backgroundColor = '';
+				p.removeAttribute('data-parent-highlighted');
+			});
+		}
+
+		function processJson(mode) {
+			try {
+				// Strip comments from input (safe version)
+				let cleanedInput = stripComments(state.input);
+
+				// Parse JSON
+				state.parsedJson = JSON.parse(cleanedInput);
+
+				// Generate output based on mode
+				if (mode === 'minify') {
+					state.output = JSON.stringify(state.parsedJson);
+				} else {
+					state.output = JSON.stringify(state.parsedJson, null, state.indentation);
+				}
+
+				// Clear error
+				state.error = null;
+
+			} catch (error) {
+				state.error = `JSON Parse Error: ${error.message}`;
+				state.output = '';
+				state.parsedJson = null;
+			}
+
+			render();
+		}
+
+		// Safe comment stripper: leaves // inside strings intact
+		function stripComments(jsonString) {
+			// Pattern picks quoted strings OR single-line comments OR multi-line comments
+			return jsonString.replace(/("(?:[^"\\]|\\.)*"|\/\/.*?$|\/\*[\s\S]*?\*\/)\s*/gm, (match, g1) => {
+				if (!g1) return '';
+				// if starts with a quote, it's a string literal — keep it
+				if (g1[0] === '"') return g1;
+				// otherwise it's a comment — remove it
+				return '';
+			}).trim();
+		}
+
+		function render() {
+			// Update output textarea
+			elements.outputTextarea.value = state.output;
+
+			// Update error display
+			if (state.error) {
+				elements.errorDisplay.textContent = state.error;
+				elements.errorDisplay.classList.remove('hidden');
+				elements.validityStatus.textContent = 'Invalid JSON';
+				elements.validityStatus.className = 'text-red-400';
+			} else {
+				elements.errorDisplay.classList.add('hidden');
+				elements.validityStatus.textContent = 'Valid JSON';
+				elements.validityStatus.className = 'text-green-400';
+			}
+
+			// Update view mode
+			if (state.viewMode === 'tree') {
+				elements.outputTextarea.style.display = 'none';
+				elements.treeViewContainer.style.display = 'block';
+				elements.searchInput.classList.remove('hidden');
+				elements.expandCollapseAllBtn.classList.remove('hidden');
+				// Hide indentation option completely in tree mode
+				elements.indentBtn.parentElement.classList.add('hidden');
+				renderTreeView();
+			} else {
+				elements.outputTextarea.style.display = 'block';
+				elements.treeViewContainer.style.display = 'none';
+				elements.searchInput.classList.add('hidden');
+				elements.expandCollapseAllBtn.classList.add('hidden');
+				// Show indentation option in text mode
+				elements.indentBtn.parentElement.classList.remove('hidden');
+			}
+
+			// Update button states
+			elements.textViewBtn.className = state.viewMode === 'text'
+				? 'px-3 py-1 text-sm bg-sky-500 text-white rounded-l transition-colors'
+				: 'px-3 py-1 text-sm rounded-l transition-colors';
+			elements.treeViewBtn.className = state.viewMode === 'tree'
+				? 'px-3 py-1 text-sm bg-sky-500 text-white rounded-r transition-colors'
+				: 'px-3 py-1 text-sm rounded-r transition-colors';
+		}
+
+		function renderTreeView() {
+			elements.treeViewContainer.innerHTML = '';
+
+			if (state.parsedJson !== null) {
+				const rootNode = createJsonNode('', state.parsedJson, true);
+				elements.treeViewContainer.appendChild(rootNode);
+
+				// After initial render, if there's an active search term, collect matches and lightly highlight
+				if (state.searchTerm) {
+					collectSearchMatches();
+				}
+			}
+		}
+
+		function createJsonNode(key, value, isRoot = false) {
+			const container = document.createElement('div');
+			container.className = 'tree-node';
+
+			const header = document.createElement('div');
+			header.className = state.isDarkTheme
+				? 'tree-header flex items-center cursor-pointer hover:bg-slate-800 rounded px-1 py-0.5'
+				: 'tree-header flex items-center cursor-pointer hover:bg-gray-200 rounded px-1 py-0.5';
+
+			const content = document.createElement('div');
+			content.className = 'flex items-center flex-1';
+
+			// Add expand/collapse icon for objects and arrays
+			if (typeof value === 'object' && value !== null) {
+				const expandIcon = document.createElement('span');
+				expandIcon.className = state.isDarkTheme ? 'tree-expand-icon mr-1 text-slate-400 text-xs' : 'tree-expand-icon mr-1 text-gray-600 text-xs';
+				expandIcon.textContent = '▼';
+				content.appendChild(expandIcon);
+			} else {
+				const spacer = document.createElement('span');
+				spacer.className = 'w-4 mr-1';
+				content.appendChild(spacer);
+			}
+
+			// Add key if not root
+			if (!isRoot && key !== '') {
+				const keySpan = document.createElement('span');
+				keySpan.className = state.isDarkTheme ? 'text-slate-300 mr-2' : 'text-gray-900 mr-2';
+				keySpan.textContent = `"${key}":`;
+				content.appendChild(keySpan);
+			}
+
+			// Add value
+			const valueSpan = document.createElement('span');
+			valueSpan.className = getValueClass(value);
+			valueSpan.textContent = formatValue(value);
+			// store original text so we can restore later when clearing highlights
+			valueSpan.dataset.orig = valueSpan.textContent;
+			
+			const searchable = `${key !== '' ? key + ' ' : ''}${valueSpan.dataset.orig}`.toLowerCase();
+			container.dataset.searchText = searchable;
+			content.appendChild(valueSpan);
+
+			header.appendChild(content);
+			container.appendChild(header);
+
+			// Add children for objects and arrays
+			if (typeof value === 'object' && value !== null) {
+				const children = document.createElement('div');
+				children.className = 'tree-children ml-4';
+
+				if (Array.isArray(value)) {
+					value.forEach((item, index) => {
+						const childNode = createJsonNode(index.toString(), item);
+						children.appendChild(childNode);
+					});
+				} else {
+					Object.entries(value).forEach(([childKey, childValue]) => {
+						const childNode = createJsonNode(childKey, childValue);
+						children.appendChild(childNode);
+					});
+				}
+
+				container.appendChild(children);
+
+				// Add click handler for expand/collapse
+				header.addEventListener('click', () => {
+					container.classList.toggle('collapsed');
+					const expandIcon = header.querySelector('.tree-expand-icon');
+					if (expandIcon) {
+						expandIcon.textContent = container.classList.contains('collapsed') ? '▶' : '▼';
+					}
+				});
+			}
+
+			return container;
+		}
+
+		function getValueClass(value) {
+			if (state.isDarkTheme) {
+				if (typeof value === 'string') return 'text-emerald-400';
+				if (typeof value === 'number') return 'text-sky-400';
+				if (typeof value === 'boolean') return 'text-orange-400';
+				if (value === null) return 'text-purple-400';
+				if (typeof value === 'object') {
+					if (Array.isArray(value)) return 'text-slate-300';
+					return 'text-slate-300';
+				}
+				return 'text-slate-300';
+			} else {
+				if (typeof value === 'string') return 'text-green-600';
+				if (typeof value === 'number') return 'text-blue-600';
+				if (typeof value === 'boolean') return 'text-orange-600';
+				if (value === null) return 'text-purple-600';
+				if (typeof value === 'object') {
+					if (Array.isArray(value)) return 'text-gray-900';
+					return 'text-gray-900';
+				}
+				return 'text-gray-900';
+			}
+		}
+
+		function formatValue(value) {
+			if (typeof value === 'string') return `"${value}"`;
+			if (typeof value === 'object' && value !== null) {
+				if (Array.isArray(value)) {
+					return `[${value.length} items]`;
+				} else {
+					const keys = Object.keys(value);
+					return `{${keys.length} properties}`;
+				}
+			}
+			return String(value);
+		}
+
+		function setViewMode(mode) {
+			state.viewMode = mode;
+			render();
+		}
+
+		function toggleIndentation() {
+			const indentOptions = [2, 4, 8];
+			const currentIndex = indentOptions.indexOf(state.indentation);
+			state.indentation = indentOptions[(currentIndex + 1) % indentOptions.length];
+
+			// Update display
+			const indentDisplay = elements.indentBtn.nextElementSibling;
+			indentDisplay.textContent = `${state.indentation} Spaces`;
+
+			// Re-process if we have valid JSON
+			if (state.parsedJson) {
+				processJson('format');
+			}
+		}
+
+		function toggleTheme() {
+			state.isDarkTheme = !state.isDarkTheme;
+			const html = document.documentElement;
+
+			if (state.isDarkTheme) {
+				html.classList.add('dark');
+				document.body.className = 'bg-slate-950 text-white h-screen overflow-hidden';
+				state.editor.setTheme('ace/theme/tomorrow_night');
+				updatePanelBorders('dark');
+				updateTreeViewColors('dark');
+				updateThemeIcon('dark');
+			} else {
+				html.classList.remove('dark');
+				document.body.className = 'bg-gray-50 text-gray-900 h-screen overflow-hidden';
+				state.editor.setTheme('ace/theme/github');
+				updatePanelBorders('light');
+				updateTreeViewColors('light');
+				updateThemeIcon('light');
+			}
+
+			// Re-render tree view with new colors
+			if (state.viewMode === 'tree') {
+				renderTreeView();
+			}
+		}
+
+		function updateThemeIcon(theme) {
+			const themeIcon = elements.themeIcon;
+			if (theme === 'dark') {
+				// Moon icon for dark theme
+				themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>';
+			} else {
+				// Sun icon for light theme
+				themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
+			}
+		}
+
+		function updatePanelBorders(theme) {
+			const inputPanel = document.getElementById('input-panel');
+			const outputPanel = document.getElementById('output-panel');
+
+			if (theme === 'dark') {
+				inputPanel.className = 'flex-1 flex flex-col border-2 border-slate-700 m-2 rounded-lg overflow-hidden';
+				outputPanel.className = 'flex-1 flex flex-col border-2 border-slate-700 m-2 rounded-lg overflow-hidden';
+			} else {
+				inputPanel.className = 'flex-1 flex flex-col border-2 border-gray-300 m-2 rounded-lg overflow-hidden';
+				outputPanel.className = 'flex-1 flex flex-col border-2 border-gray-300 m-2 rounded-lg overflow-hidden';
+			}
+		}
+
+		function updateTreeViewColors(theme) {
+			const treeContainer = document.getElementById('tree-view-container');
+			const outputTextarea = document.getElementById('output-textarea');
+
+			if (theme === 'light') {
+				treeContainer.className = 'absolute inset-0 overflow-auto p-4 font-mono text-sm text-gray-900';
+				outputTextarea.className = 'w-full h-full bg-white border-none outline-none p-4 font-mono text-sm text-gray-900 resize-none';
+			} else {
+				treeContainer.className = 'absolute inset-0 overflow-auto p-4 font-mono text-sm text-white';
+				outputTextarea.className = 'w-full h-full bg-slate-900 border-none outline-none p-4 font-mono text-sm text-white resize-none';
+			}
+		}
+
+		function handleFileOpen(event) {
+			const file = event.target.files[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					state.input = e.target.result;
+					state.editor.setValue(state.input);
+					state.editor.clearSelection();
+				};
+				reader.readAsText(file);
+			}
+		}
+
+		function downloadFile() {
+			if (!state.output || state.output.trim() === '') {
+				alert('No content to download. Please format some JSON first.');
+				return;
+			}
+
+			const blob = new Blob([state.output], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'formatted.json';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}
+
+		function copyToClipboard(text) {
+			navigator.clipboard.writeText(text).then(() => {
+				// Show brief success feedback
+				const originalText = elements.copyOutputBtn.innerHTML;
+				elements.copyOutputBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+				setTimeout(() => {
+					elements.copyOutputBtn.innerHTML = originalText;
+				}, 1000);
+			}).catch(err => {
+				console.error('Failed to copy: ', err);
+			});
+		}
+
+		function updateStatusBar() {
+			// Update size info
+			elements.sizeInfo.textContent = `${state.input.length} characters`;
+
+			// Update cursor info
+			const cursor = state.editor.getCursorPosition();
+			elements.cursorInfo.textContent = `Line ${cursor.row + 1}, Column ${cursor.column + 1}`;
+		}
+		
+		// actual implementation
+		function handleSearchImpl(event) {
+			const newTerm = (event.target.value || '').trim().toLowerCase();
+
+			// If term hasn't changed, do nothing (prevents unnecessary work)
+			if (newTerm === state.searchTerm) return;
+
+			state.searchTerm = newTerm;
+			state.searchMatches = [];
+			state.currentMatchIndex = -1;
+
+			if (state.viewMode === 'tree') {
+				renderTreeView(); // renders the tree (nodes will have dataset.searchText)
+
+				if (state.searchTerm) {
+					collectSearchMatches();
+					if (state.searchMatches.length > 0) {
+						// start before-first so first Enter lands on the first result
+						state.currentMatchIndex = -1;
+						// optionally auto-select the first match when typing:
+						// selectMatch(0);
+					} else {
+						// nothing found -> ensure any prior highlights cleared
+						restoreAllValueSpans();
+					}
+				} else {
+					// search cleared -> restore original texts
+					restoreAllValueSpans();
+				}
+			}
+		}
+
+		
+		function restoreAllValueSpans() {
+			const nodes = elements.treeViewContainer.querySelectorAll('.tree-node');
+			nodes.forEach(node => {
+				const spans = node.querySelectorAll('span');
+				spans.forEach(sp => {
+					if (sp.dataset && sp.dataset.orig) {
+						sp.textContent = sp.dataset.orig;
+						delete sp.dataset.hasMatch;
+						sp.style.outline = '';
+						sp.classList.remove('search-highlight', 'selected-search-match');
+					}
+				});
+				node.style.outline = '';
+			});
+		}
+
+
+		// helper: escape user string for RegExp
+		function escapeRegExp(string) {
+			return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		}
+		function debounce(fn, wait) {
+			let t = null;
+			return function(...args) {
+				clearTimeout(t);
+				t = setTimeout(() => fn.apply(this, args), wait);
+			};
+		}
+
+		// collect matches and wrap matched substrings in .search-highlight span
+		function collectSearchMatches() {
+			state.searchMatches = [];
+			if (!state.searchTerm) return;
+
+			const term = state.searchTerm; // already lowercased
+			const nodes = elements.treeViewContainer.querySelectorAll('.tree-node');
+
+			// First, restore any previously modified spans (cheap)
+			nodes.forEach(node => {
+				const spans = node.querySelectorAll('span');
+				spans.forEach(sp => {
+					if (sp.dataset && sp.dataset.orig) {
+						sp.textContent = sp.dataset.orig;
+						delete sp.dataset.hasMatch;
+					}
+				});
+				node.classList.remove('selected-search-match');
+				node.style.outline = '';
+			});
+
+			// Now only check nodes that might contain the term
+			nodes.forEach(node => {
+				const searchText = node.dataset.searchText || '';
+				if (!searchText.includes(term)) return; // skip immediately if no match
+
+				const spans = node.querySelectorAll('span');
+				for (let i = 0; i < spans.length; i++) {
+					const sp = spans[i];
+					const text = (sp.dataset && sp.dataset.orig) ? sp.dataset.orig : sp.textContent;
+					if (!text) continue;
+
+					const testRe = new RegExp(escapeRegExp(term), 'i');
+					if (testRe.test(text)) {
+						const replaceRe = new RegExp(escapeRegExp(term), 'ig');
+						sp.innerHTML = text.replace(
+							replaceRe,
+							m => `<span class="search-highlight" style="background-color: rgb(61 102 212 / 61%); border-radius: 3px; padding: 0 2px;">${m}</span>`
+						);
+						sp.dataset.hasMatch = 'true';
+						const highlight = sp.querySelector('.search-highlight') || sp;
+						state.searchMatches.push({ node, highlightEl: highlight });
+						break;
+					}
+				}
+			});
+
+			// IMPORTANT: do NOT set state.currentMatchIndex here.
+			// leave that to the caller (handleSearchImpl or goToNextMatch) so we don't reset on each Enter.
+		}
+
+
+
+		function clearMatchSelection() {
+			if (!elements.treeViewContainer) return;
+
+			const allNodes = elements.treeViewContainer.querySelectorAll('.tree-node');
+			allNodes.forEach(node => {
+				node.classList.remove('selected-search-match');
+				node.style.outline = '';
+				const spans = node.querySelectorAll('span');
+				spans.forEach(sp => {
+					if (sp.dataset && sp.dataset.orig) {
+						sp.textContent = sp.dataset.orig;
+						delete sp.dataset.hasMatch;
+					}
+				});
+			});
+		}
+
+		function selectMatch(index) {
+			if (!state.searchMatches || state.searchMatches.length === 0) return;
+
+			// normalize & loop
+			index = ((index % state.searchMatches.length) + state.searchMatches.length) % state.searchMatches.length;
+			state.currentMatchIndex = index;
+
+			// 0) Clear previous selection highlights (strong ones) and parent markings
+			clearPreviousSelection();
+
+			const match = state.searchMatches[state.currentMatchIndex];
+			if (!match) return;
+
+			const node = match.node;                // the tree-node line containing the match
+			const highlightEl = match.highlightEl;  // the exact matched word span
+
+			// 1) Light highlight all parents (like previous behavior), and mark them so we can clear later
+			let parent = node.parentElement;
+			while (parent && parent !== elements.treeViewContainer) {
+				if (parent.classList && parent.classList.contains('tree-node')) {
+					parent.classList.remove('collapsed');
+					parent.style.backgroundColor = "rgba(61,102,212,0.12)"; // mild blue
+					parent.setAttribute('data-parent-highlighted', 'true');
+				}
+				parent = parent.parentElement;
+			}
+
+			// 2) Strong highlight the CURRENT node's line (slightly stronger blue)
+			node.classList.add("selected-line");
+			node.style.backgroundColor = "rgba(61,102,212,0.38)";
+
+			// 3) Strongly highlight the exact matched word (red) and ensure it overrides blue
+			highlightEl.classList.add('selected-search-match');
+			highlightEl.style.backgroundColor = "rgb(212 61 61 / 54%)";  // selected red
+			highlightEl.style.outline = "rgb(171 88 88 / 34%) solid 2px";
+			highlightEl.style.borderRadius = "4px";
+			highlightEl.style.padding = "0 2px";
+
+			// 4) Expand parents so the highlight element is visible
+			parent = node.parentElement;
+			while (parent && parent !== elements.treeViewContainer) {
+				if (parent.classList && parent.classList.contains('tree-node')) {
+					parent.classList.remove('collapsed');
+					const expandIcon = parent.querySelector('.tree-expand-icon');
+					if (expandIcon) expandIcon.textContent = '▼';
+				}
+				parent = parent.parentElement;
+			}
+
+			// 5) Scroll the highlighted element into view (center)
+			const behavior = state.searchMatches.length > 80 ? 'auto' : 'smooth';
+			highlightEl.scrollIntoView({ behavior, block: 'center', inline: 'center' });
+		}
+
+
+		function goToNextMatch() {
+			if (!state.searchTerm) return;
+
+			// Only re-collect if we don't have any cached matches.
+			// This avoids resetting currentMatchIndex on each Enter.
+			if (!state.searchMatches || state.searchMatches.length === 0) {
+				// If there are no matches cached, attempt to collect now
+				collectSearchMatches();
+			}
+
+			if (!state.searchMatches || state.searchMatches.length === 0) {
+				state.currentMatchIndex = -1;
+				return;
+			}
+
+			// Advance index (start from -1 so first call -> 0)
+			let nextIndex = (state.currentMatchIndex + 1) % state.searchMatches.length;
+			if (state.currentMatchIndex === -1) nextIndex = 0;
+
+			selectMatch(nextIndex);
+		}
+
+
+		function toggleAllNodes() {
+			state.allNodesExpanded = !state.allNodesExpanded;
+
+			// Update icon
+			if (state.allNodesExpanded) {
+				// Show collapse icon
+				elements.expandCollapseIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>';
+			} else {
+				// Show expand icon
+				elements.expandCollapseIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>';
+			}
+
+			// Toggle all tree nodes
+			const allTreeNodes = elements.treeViewContainer.querySelectorAll('.tree-node');
+			allTreeNodes.forEach(node => {
+				if (state.allNodesExpanded) {
+					node.classList.remove('collapsed');
+				} else {
+					node.classList.add('collapsed');
+				}
+
+				// Update individual expand icons
+				const expandIcon = node.querySelector('.tree-expand-icon');
+				if (expandIcon) {
+					expandIcon.textContent = state.allNodesExpanded ? '▼' : '▶';
+				}
+			});
+		}
+
+    </script>
+</body>
+</html>
