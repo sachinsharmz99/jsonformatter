@@ -489,6 +489,7 @@
 			valueSpan.textContent = formatValue(value);
 			// store original text so we can restore later when clearing highlights
 			valueSpan.dataset.orig = valueSpan.textContent;
+			valueSpan.style.overflowWrap = "anywhere";
 			
 			const searchable = `${key !== '' ? key + ' ' : ''}${valueSpan.dataset.orig}`.toLowerCase();
 			container.dataset.searchText = searchable;
