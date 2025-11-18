@@ -33,6 +33,189 @@
 		.selected-search-match {
 			box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
 		}
+		/* ---------- Responsive device support for your existing HTML ---------- */
+
+		/* Base improvements */
+		:root{
+		  --header-h: 56px;   /* approximate header height */
+		  --footer-h: 48px;   /* approximate footer height */
+		  --gap: 0.5rem;      /* default margin/gap used for panels */
+		}
+
+		/* Ensure full-height layout works reliably */
+		html, body {
+		  height: 100%;
+		  -webkit-font-smoothing: antialiased;
+		  -moz-osx-font-smoothing: grayscale;
+		}
+
+		/* Ensure main area uses full available height when stacked */
+		#app-main {
+		  display: flex;
+		  flex-direction: row; /* default desktop: row */
+		  align-items: stretch;
+		  gap: 0.5rem;
+		  height: calc(100vh - var(--header-h) - var(--footer-h));
+		  padding: 0.25rem;
+		  overflow: hidden;
+		}
+
+		/* Panels: let them flex & scroll internally */
+		#input-panel, #output-panel {
+		  display: flex;
+		  flex-direction: column;
+		  flex: 1 1 0%;
+		  min-width: 0; /* allow shrinking */
+		  margin: 0.5rem;
+		  overflow: hidden;
+		  border-radius: 0.5rem;
+		}
+
+		/* Editor and output containers take remaining space and scroll */
+		#editor-container,
+		#tree-view-container,
+		#output-textarea {
+		  min-height: 180px;
+		  height: 100%;
+		  overflow: auto;
+		  -webkit-overflow-scrolling: touch;
+		}
+
+		/* Ace editor container must fill the panel area */
+		#editor-container,
+		.ace_editor {
+		  width: 100% !important;
+		  height: 100% !important;
+		  min-height: 180px;
+		}
+
+		/* Toolbars compactness (icons-only) on small screens — you already use hidden/sm:inline, but ensure tidy spacing) */
+		@media (max-width: 767px) {
+		  /* stack vertically on phones */
+		  #app-main {
+			flex-direction: column;
+			height: calc(100vh - var(--header-h) - var(--footer-h));
+			padding: 0;
+		  }
+
+		  /* panels full width and natural height distribution */
+		  #input-panel, #output-panel {
+			margin: 0.4rem 0.6rem;
+			min-height: calc((100vh - var(--header-h) - var(--footer-h) - 56px) / 2); /* split remaining space roughly */
+		  }
+
+		  /* toolbar: hide non-essential text, keep icons only */
+		  #input-toolbar span,
+		  #output-toolbar .text-sm,
+		  #output-toolbar input[placeholder] {
+			display: none !important;
+		  }
+
+		  /* allow more room to type and scroll inside editors */
+		  #editor-container, #tree-view-container {
+			min-height: 220px;
+			max-height: 50vh;
+		  }
+
+		  #output-textarea {
+			min-height: 200px;
+			max-height: 50vh;
+		  }
+
+		  /* make tree view container padding smaller on small screens */
+		  #tree-view-container { padding: 0.75rem; }
+
+		  /* slightly larger tap targets for icons */
+		  button, .p-2 { padding: 0.5rem !important; }
+
+		  /* ensure long keys/values wrap nicely */
+		  .tree-node span, #output-textarea {
+			overflow-wrap: anywhere;
+			word-break: break-word;
+		  }
+		}
+
+		@media (min-width: 768px) and (max-width: 1023px) {
+		  #app-main { flex-direction: row; gap: 0.5rem; }
+		  #input-panel { flex: 0.5 1 0%; }
+		  #output-panel { flex: 0.5 1 0%; }
+
+		  #editor-container, #tree-view-container, #output-textarea {
+			min-height: calc(100vh - var(--header-h) - var(--footer-h) - 120px);
+		  }
+
+		  /* show search on tablet */
+		  #search-input { display: inline-block !important; }
+		}
+
+		@media (min-width: 1024px) {
+		  #app-main { flex-direction: row; gap: 0.75rem; padding: 0.5rem; }
+		  #input-panel, #output-panel {
+			margin: 0.5rem;
+		  }
+
+
+		  #editor-container, #tree-view-container, #output-textarea {
+			min-height: calc(100vh - var(--header-h) - var(--footer-h) - 120px);
+		  }
+
+		  #input-toolbar span, #output-toolbar .text-sm, #output-toolbar input[placeholder] { display: inline-block !important; }
+		}
+
+		.tree-header { padding: 0.25rem 0.5rem; }
+		.tree-children { padding-left: 0.6rem; }
+		.search-highlight { border-radius: 3px; padding: 0 2px; }
+
+		.tree-node.collapsed > .tree-children { display: none; }
+
+		button:focus, .tree-node:focus { outline: 2px solid rgba(99,102,241,0.12); outline-offset: 2px; }
+
+		body.has-floating-btn { padding-bottom: 80px; }
+		
+		#format-button-container {
+			display: flex !important;
+			position: fixed;
+			bottom: 44.5%;        /* adjust if needed */
+			left: 50%;
+			transform: translateX(-50%);
+			width: 56px;
+			height: 56px;
+			border-radius: 9999px;
+			z-index: 9999;
+			background-color: rgb(14 165 233); /* sky-500 */
+			box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.45);
+		}
+		.json-error-marker {
+			background-color: rgba(220, 38, 38, 0.18) !important; /* red tint */
+			border-radius: 4px;
+			position: relative;
+			box-shadow: 0 0 0 2px rgba(220,38,38,0.06) inset;
+		}
+		/* ensure selection also looks prominent */
+		.ace_marker-layer .json-error-marker { opacity: 1; }
+		
+		.json-error-marker {
+			background-color: rgba(220, 38, 38, 0.20) !important; /* subtle red */
+			border-radius: 4px;
+			box-shadow: inset 0 0 0 1px rgba(220,38,38,0.06);
+		}
+		.ace_marker-layer .json-error-marker { opacity: 1; }
+		.ace_marker-layer .json-error-marker {
+			background-color: rgba(220, 38, 38, 0.28) !important; /* stronger red */
+			border-radius: 4px;
+			box-shadow: 0 0 0 1px rgba(220,38,38,0.06) inset;
+		}
+
+		/* gentle full-line background so user sees the whole line */
+		.ace_marker-layer .json-error-line {
+			background-color: rgba(220, 38, 38, 0.08) !important;
+		}
+
+		/* ensure both markers are visible */
+		.ace_marker-layer .json-error-marker,
+		.ace_marker-layer .json-error-line {
+			opacity: 1 !important;
+		}
     </style>
 </head>
 <body class="bg-slate-950 text-white h-screen overflow-hidden">
@@ -354,32 +537,247 @@
 				p.removeAttribute('data-parent-highlighted');
 			});
 		}
-
+		
+		// ---------- processJson (replace existing) ----------
 		function processJson(mode) {
 			try {
-				// Strip comments from input (safe version)
-				let cleanedInput = stripComments(state.input);
+				const cleanedInput = stripComments(state.input);
 
-				// Parse JSON
+				// attempt parse
 				state.parsedJson = JSON.parse(cleanedInput);
 
-				// Generate output based on mode
+				// produce output
 				if (mode === 'minify') {
 					state.output = JSON.stringify(state.parsedJson);
 				} else {
 					state.output = JSON.stringify(state.parsedJson, null, state.indentation);
 				}
 
-				// Clear error
+				// clear error and previous markers
 				state.error = null;
-
+				removeExistingErrorMarker();
+				render();
 			} catch (error) {
-				state.error = `JSON Parse Error: ${error.message}`;
+				const msg = (error && error.message) ? error.message : String(error);
+				state.error = `JSON Parse Error: ${msg}`;
 				state.output = '';
 				state.parsedJson = null;
-			}
 
-			render();
+				// Try to get numeric position from message
+				let pos = null;
+				const posMatch = msg.match(/position\s+(\d+)/i);
+				if (posMatch && posMatch[1]) {
+					pos = parseInt(posMatch[1], 10);
+				} else {
+					// fallback to line/column
+					const lcMatch = msg.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+					if (lcMatch && lcMatch[1] && lcMatch[2]) {
+						const lineNum = Math.max(0, parseInt(lcMatch[1], 10) - 1);
+						const colNum = Math.max(0, parseInt(lcMatch[2], 10) - 1);
+						try {
+							const cleaned = stripComments(state.input);
+							let idx = 0, ln = 0;
+							for (let i = 0; i < cleaned.length && ln < lineNum; i++) {
+								if (cleaned[i] === '\n') ln++;
+								idx++;
+							}
+							pos = idx + colNum;
+						} catch (e) {
+							pos = null;
+						}
+					}
+				}
+
+				// If we have pos w.r.t cleanedInput, try mapping to editor content
+				if (pos !== null && !Number.isNaN(pos)) {
+					const cleaned = stripComments(state.input);
+					const safePos = Math.max(0, Math.min(pos, cleaned.length));
+					// For one-liner, mapping is normally identical; but do a snippet match to be robust
+					const ctxLeft = Math.max(0, safePos - 40);
+					const ctxRight = Math.min(cleaned.length, safePos + 40);
+					const snippet = cleaned.slice(ctxLeft, ctxRight);
+
+					const editorText = state.editor ? state.editor.getSession().getDocument().getValue() : state.input;
+					let mappedIndex = -1;
+					if (snippet && editorText) {
+						// Try exact snippet first
+						mappedIndex = editorText.indexOf(snippet);
+						if (mappedIndex !== -1) {
+							const offsetInSnippet = safePos - ctxLeft;
+							mappedIndex = mappedIndex + offsetInSnippet;
+						} else {
+							// try smaller inner snippet to increase match chance
+							const inner = snippet.slice(Math.floor(snippet.length / 3), Math.floor(snippet.length * 2 / 3));
+							if (inner.length > 4) {
+								const found = editorText.indexOf(inner);
+								if (found !== -1) {
+									// approximate index: found - (ctxLeft offset inside snippet) + offset
+									const innerOffset = Math.floor(snippet.length / 3);
+									mappedIndex = found - innerOffset + (safePos - ctxLeft);
+									if (mappedIndex < 0) mappedIndex = -1;
+								}
+							}
+						}
+					}
+
+					const finalIndex = (mappedIndex !== -1) ? mappedIndex : Math.max(0, Math.min(safePos, editorText.length));
+					// jump to error
+					scrollEditorToError(finalIndex, msg, cleaned);
+				} else {
+					// fallback: search for token text
+					const tokenMatch = msg.match(/Unexpected token\s+(['"`]?)(.+?)\1/i);
+					if (tokenMatch && tokenMatch[2]) {
+						const tokenText = tokenMatch[2];
+						const editorText = state.editor ? state.editor.getSession().getDocument().getValue() : state.input;
+						const idx = editorText.indexOf(tokenText);
+						if (idx !== -1) {
+							scrollEditorToError(idx, msg);
+						} else {
+							// if not found, jump to start so user can see something
+							try { state.editor.focus(); state.editor.gotoLine(1, 0, true); } catch(e){ state.editor && state.editor.focus(); }
+						}
+					} else {
+						// last resort: focus start
+						try { state.editor.focus(); state.editor.gotoLine(1, 0, true); } catch(e){ state.editor && state.editor.focus(); }
+					}
+				}
+
+				render();
+			}
+		}
+
+
+		// Enhanced scroll & dual-marker highlight
+		function scrollEditorToError(index, message, cleanedInputForContext) {
+			if (!state.editor || typeof index !== 'number' || Number.isNaN(index)) return;
+
+			try {
+				const session = state.editor.getSession();
+				const doc = session.getDocument();
+				const editorText = doc.getValue();
+
+				// clamp index
+				const safeIndex = Math.max(0, Math.min(index, editorText.length));
+
+				// convert to row/column
+				let pos = doc.indexToPosition(safeIndex, 0); // {row, column}
+
+				// if token provided, try to find token nearby for more accurate spot
+				const tokenMatch = (message || '').match(/Unexpected token\s+(['"`]?)(.+?)\1/i);
+				if (tokenMatch && tokenMatch[2]) {
+					const token = tokenMatch[2];
+					let found = editorText.indexOf(token, Math.max(0, safeIndex - 40));
+					if (found === -1) found = editorText.indexOf(token);
+					if (found !== -1) pos = doc.indexToPosition(found, 0);
+				}
+
+				// remove previous markers
+				removeExistingErrorMarker();
+
+				// build selection range (small token or nearest chars)
+				let endPos = { row: pos.row, column: pos.column + 1 };
+				if (tokenMatch && tokenMatch[2]) {
+					const token = tokenMatch[2];
+					const foundIdx = editorText.indexOf(token, Math.max(0, safeIndex - 40));
+					if (foundIdx !== -1) {
+						endPos = doc.indexToPosition(foundIdx + token.length, 0);
+						pos = doc.indexToPosition(foundIdx, 0);
+					}
+				} else {
+					const line = doc.getLine(pos.row) || '';
+					endPos.column = Math.min(line.length, pos.column + Math.min(12, Math.max(1, line.length - pos.column)));
+				}
+
+				// create Range and add markers: one text marker + one full-line marker
+				let Range;
+				try {
+					Range = ace.require && ace.require('ace/range') ? ace.require('ace/range').Range : window.ace && window.ace.Range;
+				} catch (e) {
+					Range = window.ace && window.ace.Range;
+				}
+
+				if (Range) {
+					const range = new Range(pos.row, pos.column, endPos.row, endPos.column);
+					// add inline/text marker (tight highlight)
+					const inlineId = session.addMarker(range, 'json-error-marker', 'text', false);
+					window.__json_error_marker_id = inlineId;
+
+					// add full-line marker for the line (soft background)
+					const lineRange = new Range(pos.row, 0, pos.row, 1);
+					const lineId = session.addMarker(lineRange, 'json-error-line', 'fullLine', false);
+					window.__json_error_line_marker_id = lineId;
+
+					// set selection so caret is inside the error token
+					state.editor.getSelection().setSelectionRange(range, false);
+				} else {
+					// fallback: move cursor
+					state.editor.moveCursorToPosition(pos);
+				}
+
+				// Use gotoLine to reliably scroll and place caret; line numbers are 1-based
+				try {
+					state.editor.gotoLine(pos.row + 1, Math.max(0, pos.column), true);
+				} catch (e) {
+					try { state.editor.scrollToLine(pos.row, true, true); } catch (ee) {}
+				}
+
+				// Force renderer to center cursor and update visuals
+				try {
+					const renderer = state.editor.renderer;
+					if (renderer && typeof renderer.scrollCursorIntoView === 'function') {
+						// center the cursor vertically/horizontally in viewport
+						renderer.scrollCursorIntoView({ row: pos.row, column: pos.column }, 0.5);
+					}
+					// force a full redraw so markers show immediately
+					renderer && renderer.updateFull();
+				} catch (e) {
+					// ignore minor failures
+				}
+
+				// focus editor to allow immediate edit
+				state.editor.focus();
+
+			} catch (e) {
+				console.error('scrollEditorToError failed: ', e);
+				try { state.editor.focus(); } catch (ignored) {}
+			}
+		}
+
+		// remove both inline and line markers
+		function removeExistingErrorMarker() {
+			try {
+				const session = state.editor && state.editor.getSession();
+				if (!session) return;
+
+				if (window.__json_error_marker_id != null) {
+					try { session.removeMarker(window.__json_error_marker_id); } catch (e) { /* ignore */ }
+					window.__json_error_marker_id = null;
+				}
+				if (window.__json_error_line_marker_id != null) {
+					try { session.removeMarker(window.__json_error_line_marker_id); } catch (e) { /* ignore */ }
+					window.__json_error_line_marker_id = null;
+				}
+			} catch (e) {
+				// ignore
+			}
+		}
+		// remove both inline and line markers
+		function removeExistingErrorMarker() {
+			try {
+				const session = state.editor && state.editor.getSession();
+				if (!session) return;
+
+				if (window.__json_error_marker_id != null) {
+					try { session.removeMarker(window.__json_error_marker_id); } catch (e) { /* ignore */ }
+					window.__json_error_marker_id = null;
+				}
+				if (window.__json_error_line_marker_id != null) {
+					try { session.removeMarker(window.__json_error_line_marker_id); } catch (e) { /* ignore */ }
+					window.__json_error_line_marker_id = null;
+				}
+			} catch (e) {
+				// ignore
+			}
 		}
 
 		// Safe comment stripper: leaves // inside strings intact
@@ -490,7 +888,6 @@
 			// store original text so we can restore later when clearing highlights
 			valueSpan.dataset.orig = valueSpan.textContent;
 			valueSpan.style.overflowWrap = "anywhere";
-			
 			const searchable = `${key !== '' ? key + ' ' : ''}${valueSpan.dataset.orig}`.toLowerCase();
 			container.dataset.searchText = searchable;
 			content.appendChild(valueSpan);
